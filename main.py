@@ -1,7 +1,18 @@
 import cv2
 import mediapipe as mp
 import math
+import time
 #import RPi.GPIO as GPIO
+
+def countdown(num_of_secs):
+    while num_of_secs:
+        m, s = divmod(num_of_secs, 60)
+        min_sec_format = '{:02d}:{:02d}'.format(m, s)
+        print(min_sec_format, end='/r')
+        time.sleep(1)
+        num_of_secs -= 1
+
+    print('Countdown finished.')
 
 #GPIO.setmode(GPIO.BCM)
 #GPIO.setup(18, GPIO.OUT)
@@ -22,10 +33,23 @@ configdibujo = mpDibujo.DrawingSpec(thickness=1, circle_radius=1)
 mpmallafacial = mp.solutions.face_mesh
 mallafacial = mpmallafacial.FaceMesh(max_num_faces=1)
 
+count = 0
+value = 6
 while cap.isOpened():
     ret, frame = cap.read()
+    frame = cv2.flip(frame, 1)
     frame = cv2.resize(frame, (1200, 900))
     frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    img1 = cv2.rectangle(frame, (110, 0), (1010, 40), 0, -1)
+    frame = cv2.ellipse(img1, (600, 450), (400, 300), 90, 0, 360, 0, 10)
+
+    text = 'Mantenga su cara dentro del ovalo y no se mueva'
+    cv2.putText(frame, text, (120, 30), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
+    cv2.putText(frame, str(value), (520, 420), cv2.FONT_HERSHEY_COMPLEX, 8, (0, 0, 255), 6)
+    if (count % 15) == 1:
+        value -= 1
+
     resultados = mallafacial.process(frameRGB)
     calibx = []
     caliby = []
@@ -74,9 +98,14 @@ while cap.isOpened():
                     cx12, cy12 = calib[177][1:]
                     longitud6calib = math.hypot(cx12 - cx11, cy12 - cy11)
                     # print(longitud6)
-    cv2.imshow('calibracion', cv2.flip(frame, 1))
+    cv2.imshow('calibracion', frame)
+    #cv2.imshow('image', img)
     if cv2.waitKey(1) & 0xFF == 32:  # es la tecla espaciadora
         break
+    count += 1
+    if count > 75:
+        break
+    #print(count)
 cv2.destroyWindow("calibracion")
 while cap.isOpened():
     ret, frame = cap.read()
@@ -172,10 +201,10 @@ while cap.isOpened():
             elif longitud4 > (int(longitud4calib) * 6):
 #                pwm1.ChangeDutyCycle(6)
                 text = "Boca Abierta"
-            elif longitud5 < (int(longitud5calib) * 0.97) and longitud3 > (int(longitud3calib) + 1):
+            elif longitud5 < (int(longitud5calib) * 0.95) and longitud3 > (int(longitud3calib) + 1):
 #                pwm2.ChangeDutyCycle(9)
                 text = "Mueca Derecha"
-            elif longitud6 < (int(longitud6calib) * 0.97) and longitud3 > (int(longitud3calib) + 1):
+            elif longitud6 < (int(longitud6calib) * 0.95) and longitud3 > (int(longitud3calib) + 1):
 #                pwm2.ChangeDutyCycle(6)
                 text = "Mueca Izquierda"
             elif longitud3 < ((int(longitud3calib) * 0.95)) and longitud4 > (int(longitud4calib) * 1.20):
@@ -199,3 +228,5 @@ while cap.isOpened():
         break
 cap.release()
 cv2.destroyWindow()
+
+
